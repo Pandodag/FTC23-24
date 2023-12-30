@@ -10,13 +10,13 @@ public class ArmSystem extends SubSystem {
 
 	private static class ArmPositionSetting {
 		public static final ArmPositionSetting LEFT_EXTENSION
-				= new ArmPositionSetting(0.0, 0.3204, 0.8552);
+				= new ArmPositionSetting(0.0, 0.2679, 0.8552);
 
 		public static final ArmPositionSetting UPWARD_EXTENSION
 				= new ArmPositionSetting(0.0, 0.07806, 0.8895);
 
 		public static final ArmPositionSetting CLOSED_EXTENSION
-				= new ArmPositionSetting(0.0, 0.3004, 0.3439);
+				= new ArmPositionSetting(0.0, 0.2679, 0.3439);
 
 		public static final ArmPositionSetting A_EXTENSION = new ArmPositionSetting(0.0, 0.0, 1.0);
 		public static final ArmPositionSetting B_EXTENSION = new ArmPositionSetting(0.0, 0.036, 1.0);
@@ -146,6 +146,7 @@ public class ArmSystem extends SubSystem {
 			}
 		}
 		setData(currentArmPosition, currentWristPosition);
+		currentArmPosition.arm += gamepad1.right_stick_y * 0.001f;
 
 		extensionMotor.setPower(gamepad1.left_stick_y);
 
