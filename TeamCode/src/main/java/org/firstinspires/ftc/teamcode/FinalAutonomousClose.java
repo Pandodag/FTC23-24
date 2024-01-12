@@ -25,25 +25,17 @@ import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
-import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
-import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
 import org.firstinspires.ftc.teamcode.vision.AprilTagDetectionPipeline;
 import org.firstinspires.ftc.teamcode.vision.Camera;
-import org.opencv.core.Point;
 import org.opencv.core.Rect;
-import org.openftc.apriltag.AprilTagDetection;
-
-import java.util.ArrayList;
 
 @Autonomous
-public class FinalAutonomous extends LinearOpMode {
+public class FinalAutonomousClose extends LinearOpMode {
 
 	private Camera camera;
 	private AprilTagDetectionPipeline aprilTagDetectionPipeline;
@@ -55,15 +47,32 @@ public class FinalAutonomous extends LinearOpMode {
 	private DcMotor rightBackDrive = null;
 
 	private Rect rect1 = new Rect(0, 0, Camera.CAMERA_WIDTH / 3, Camera.CAMERA_HEIGHT);
-	private Rect rect2 = new Rect(rect1.x, 0, Camera.CAMERA_WIDTH * 2 / 3, Camera.CAMERA_HEIGHT);
+	private Rect rect2 = new Rect(rect1.x, 0, Camera.CAMERA_WIDTH / 3, Camera.CAMERA_HEIGHT);
 	private Rect rect3 = new Rect(rect2.x, 0, Camera.CAMERA_WIDTH / 3, Camera.CAMERA_HEIGHT);
 
 	private enum Location {
 		LEFT, CENTER, RIGHT;
 	}
 
+	private Servo armServo = null;
+	private Servo elbowServo = null;
+	private Servo wristServo = null;
+	private Servo handServo = null;
+
+	private ElapsedTime timer;
+
+	private void move() {
+		SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
+		Trajectory trajectory = null;
+		trajectory = drive.trajectoryBuilder(new Pose2d())
+				.strafeLeft(-20.0)
+				.build();
+		drive.followTrajectory(trajectory);
+	}
+
 	@Override
 	public void runOpMode() {
+		timer = new ElapsedTime();
 		aprilTagDetectionPipeline = new AprilTagDetectionPipeline(telemetry, Camera.FX, Camera.FY, Camera.CX, Camera.CY);
 		camera = new Camera(telemetry, hardwareMap, "webcam1", aprilTagDetectionPipeline);
 
@@ -71,6 +80,11 @@ public class FinalAutonomous extends LinearOpMode {
 		leftBackDrive  = hardwareMap.get(DcMotor.class, "backLeft");
 		rightFrontDrive = hardwareMap.get(DcMotor.class, "frontRight");
 		rightBackDrive = hardwareMap.get(DcMotor.class, "backRight");
+
+		armServo = hardwareMap.get(Servo.class, "armServo");
+		elbowServo = hardwareMap.get(Servo.class, "elbowServo");
+		wristServo = hardwareMap.get(Servo.class, "wristServo");
+		handServo = hardwareMap.get(Servo.class, "handServo");
 
 		leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
 		leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
@@ -87,21 +101,31 @@ public class FinalAutonomous extends LinearOpMode {
 		final int THRESHOLD_NUM_FRAMES_NO_DETECTION_BEFORE_LOW_DECIMATION = 4;
 
 		final double FEET_PER_METER = 3.28084;
-
-		Location location = null;
+		timer.reset();
 
 		while (opModeIsActive()) {
-			// if we're still finding the position to go to
-			if (location == null) {
-				Point point = aprilTagDetectionPipeline.updateInLoop();
-				if (point != null) {
-					if (rect1.contains(point)) { location = Location.LEFT; }
-					if (rect2.contains(point)) { location = Location.CENTER; }
-					if (rect3.contains(point)) { location = Location.RIGHT; }
-				}
+			// move left
+			double lateral = -0.6;
+			double axial = 0.0, yaw = 0.0;
+
+			double leftFrontPower = axial + lateral + yaw;
+			double rightFrontPower = axial - lateral - yaw;
+			double leftBackPower = axial - lateral + yaw;
+			double rightBackPower = axial + lateral - yaw;
+
+			if (timer.time() < 0.9) {
+				leftFrontDrive.setPower(leftFrontPower);
+				rightFrontDrive.setPower(rightFrontPower);
+				leftBackDrive.setPower(leftBackPower);
+				rightBackDrive.setPower(rightBackPower);
+			} else {
+				leftFrontDrive.setPower(0);
+				rightFrontDrive.setPower(0);
+				leftBackDrive.setPower(0);
+				rightBackDrive.setPower(0);
 			}
 			telemetry.update();
-			sleep(20);
+//			sleep(20);
 		}
 	}
 }

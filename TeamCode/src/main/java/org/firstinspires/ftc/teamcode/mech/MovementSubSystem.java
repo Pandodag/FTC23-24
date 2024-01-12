@@ -55,8 +55,8 @@ public class MovementSubSystem extends SubSystem {
 
 		// POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
 		double axial = -gamepad2.left_stick_y;  // Note: pushing stick forward gives negative value
-		double lateral = -gamepad2.left_stick_x;
-		double yaw = -gamepad2.right_stick_x;
+		double lateral = gamepad2.left_stick_x;
+		double yaw = gamepad2.right_stick_x;
 
 		// Combine the joystick requests for each axis-motion to determine each wheel's power.
 		// Set up a variable for each drive wheel to save the power level for telemetry.

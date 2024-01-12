@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.subsystem.SubSystem;
 
 public class ArmSystem extends SubSystem {
 
-	private static class ArmPositionSetting {
+	public static class ArmPositionSetting {
 		public static final ArmPositionSetting LEFT_EXTENSION
 				= new ArmPositionSetting(0.0, 0.2679, 0.8552);
 
@@ -73,19 +73,30 @@ public class ArmSystem extends SubSystem {
 	// claw
 	private ElapsedTime clawTimer;
 	private static final double CLAW_TOGGLE_COOLDOWN = 0.5;  // 0.5 sec
+	private ElapsedTime elbowTimer;
+
+	public static void moveServoToTarget(Servo s, double targetPosition, double inc) {
+		if (s.getPosition() == targetPosition) {
+			return;
+		}
+		double moveAmount = targetPosition - s.getPosition();
+		double dir = Math.signum(moveAmount);
+		moveAmount = Math.min(Math.abs(moveAmount), inc);
+		s.setPosition(s.getPosition() + moveAmount * dir);
+	}
 
 	private void setData(ArmPositionSetting a, WristPositionSetting w) {
 		extensionMotor.setTargetPosition((int) a.extension);
-		armServo.setPosition(a.arm);
-		elbowServo.setPosition(a.elbow);
+		moveServoToTarget(armServo, a.arm, 0.004);
+		moveServoToTarget(elbowServo, a.elbow, 0.004);
 		wristServo.setPosition(w.wrist);
-		handServo.setPosition(w.hand);
 	}
 
 	@Override
 	public void init() {
 		clawTimer = new ElapsedTime();
 		clawTimer.reset();
+		elbowTimer = new ElapsedTime();
 		// find servos on hardware map
 		extensionMotor = hardwareMap.get(DcMotor.class, "extensionMotor");
 		armServo = hardwareMap.get(Servo.class, "armServo");
@@ -94,6 +105,7 @@ public class ArmSystem extends SubSystem {
 		handServo = hardwareMap.get(Servo.class, "handServo");
 	}
 
+	int count = 0;
 	@Override
 	public void update() {
 		// big arm code
@@ -119,10 +131,27 @@ public class ArmSystem extends SubSystem {
 		// claw code
 		// original position
 		if (gamepad1.a) {
-			currentArmPosition = ArmPositionSetting.A_EXTENSION;
-			currentWristPosition = WristPositionSetting.PLACING_POSITION;
-			currentWristPosition.open = false;
-			currentWristPosition.setHand();
+			if (elbowTimer.seconds() > CLAW_TOGGLE_COOLDOWN) {
+				if (count % 3 == 0) {
+					currentArmPosition.elbow = ArmPositionSetting.CLOSED_EXTENSION.elbow;
+				} else if (count % 3 == 1) {
+					currentArmPosition.arm = ArmPositionSetting.A_EXTENSION.arm;
+					currentWristPosition = WristPositionSetting.PLACING_POSITION;
+					currentWristPosition.open = false;
+					currentWristPosition.setHand();
+				} else if (count % 3 == 2) {
+					currentArmPosition = ArmPositionSetting.A_EXTENSION;
+					currentWristPosition = WristPositionSetting.PLACING_POSITION;
+					currentWristPosition.open = false;
+					currentWristPosition.setHand();
+				}
+				count++;
+				elbowTimer.reset();
+			}
+//			currentArmPosition = ArmPositionSetting.A_EXTENSION;
+//			currentWristPosition = WristPositionSetting.PLACING_POSITION;
+//			currentWristPosition.open = false;
+//			currentWristPosition.setHand();
 		}
 		// twist wrist servo and flip the hand servo up
 		else if (gamepad1.b) {
@@ -142,11 +171,12 @@ public class ArmSystem extends SubSystem {
 					currentWristPosition.open = true;
 					currentWristPosition.setHand();
 				}
+				handServo.setPosition(currentWristPosition.hand);
+//				wristServo.setPosition(currentWristPosition.wrist);
 				clawTimer.reset();
 			}
 		}
 		setData(currentArmPosition, currentWristPosition);
-		currentArmPosition.arm += gamepad1.right_stick_y * 0.001f;
 
 		extensionMotor.setPower(gamepad1.left_stick_y);
 
