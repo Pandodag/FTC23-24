@@ -113,7 +113,7 @@ public class FinalAutonomousClose extends LinearOpMode {
 			double leftBackPower = axial - lateral + yaw;
 			double rightBackPower = axial + lateral - yaw;
 
-			if (timer.time() < 0.9) {
+			if (timer.time() < 1.6) {
 				leftFrontDrive.setPower(leftFrontPower);
 				rightFrontDrive.setPower(rightFrontPower);
 				leftBackDrive.setPower(leftBackPower);

@@ -132,19 +132,19 @@ public class ArmSystem extends SubSystem {
 		// original position
 		if (gamepad1.a) {
 			if (elbowTimer.seconds() > CLAW_TOGGLE_COOLDOWN) {
-				if (count % 3 == 0) {
+				/*if (count % 3 == 0) {
 					currentArmPosition.elbow = ArmPositionSetting.CLOSED_EXTENSION.elbow;
 				} else if (count % 3 == 1) {
 					currentArmPosition.arm = ArmPositionSetting.A_EXTENSION.arm;
 					currentWristPosition = WristPositionSetting.PLACING_POSITION;
 					currentWristPosition.open = false;
 					currentWristPosition.setHand();
-				} else if (count % 3 == 2) {
+				} else if (count % 3 == 2) {*/
 					currentArmPosition = ArmPositionSetting.A_EXTENSION;
 					currentWristPosition = WristPositionSetting.PLACING_POSITION;
 					currentWristPosition.open = false;
 					currentWristPosition.setHand();
-				}
+//				}
 				count++;
 				elbowTimer.reset();
 			}
