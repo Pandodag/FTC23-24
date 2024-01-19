@@ -61,15 +61,6 @@ public class FinalAutonomousClose extends LinearOpMode {
 
 	private ElapsedTime timer;
 
-	private void move() {
-		SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-		Trajectory trajectory = null;
-		trajectory = drive.trajectoryBuilder(new Pose2d())
-				.strafeLeft(-20.0)
-				.build();
-		drive.followTrajectory(trajectory);
-	}
-
 	@Override
 	public void runOpMode() {
 		timer = new ElapsedTime();
@@ -94,13 +85,6 @@ public class FinalAutonomousClose extends LinearOpMode {
 		waitForStart();
 		telemetry.setMsTransmissionInterval(50);
 
-		int numFramesWithoutDetection = 0;
-		final float DECIMATION_HIGH = 3;
-		final float DECIMATION_LOW = 2;
-		final float THRESHOLD_HIGH_DECIMATION_RANGE_METERS = 1.0f;
-		final int THRESHOLD_NUM_FRAMES_NO_DETECTION_BEFORE_LOW_DECIMATION = 4;
-
-		final double FEET_PER_METER = 3.28084;
 		timer.reset();
 
 		while (opModeIsActive()) {

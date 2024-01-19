@@ -21,38 +21,29 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.acmerobotics.roadrunner.geometry.Pose2d;
-import com.acmerobotics.roadrunner.trajectory.Trajectory;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.util.MotorUtil;
 import org.firstinspires.ftc.teamcode.vision.AprilTagDetectionPipeline;
 import org.firstinspires.ftc.teamcode.vision.Camera;
+import org.firstinspires.ftc.teamcode.vision.ObjectDetectionPipeline;
 import org.opencv.core.Rect;
 
 @Autonomous
 public class FinalAutonomousFar extends LinearOpMode {
 
 	private Camera camera;
-	private AprilTagDetectionPipeline aprilTagDetectionPipeline;
+	private ObjectDetectionPipeline detectionPipeline;
 
 	// motors
 	private DcMotor leftFrontDrive = null;
 	private DcMotor leftBackDrive = null;
 	private DcMotor rightFrontDrive = null;
 	private DcMotor rightBackDrive = null;
-
-	private Rect rect1 = new Rect(0, 0, Camera.CAMERA_WIDTH / 3, Camera.CAMERA_HEIGHT);
-	private Rect rect2 = new Rect(rect1.x, 0, Camera.CAMERA_WIDTH / 3, Camera.CAMERA_HEIGHT);
-	private Rect rect3 = new Rect(rect2.x, 0, Camera.CAMERA_WIDTH / 3, Camera.CAMERA_HEIGHT);
-
-	private enum Location {
-		LEFT, CENTER, RIGHT;
-	}
 
 	private Servo armServo = null;
 	private Servo elbowServo = null;
@@ -61,20 +52,41 @@ public class FinalAutonomousFar extends LinearOpMode {
 
 	private ElapsedTime timer;
 
-	private void move() {
-		SampleMecanumDrive drive = new SampleMecanumDrive(hardwareMap);
-		Trajectory trajectory = null;
-		trajectory = drive.trajectoryBuilder(new Pose2d())
-				.strafeLeft(-20.0)
-				.build();
-		drive.followTrajectory(trajectory);
+	// park far left
+	private void parkFarLeft() {
+		// move left
+		if (timer.time() < 3.4) {
+			MotorUtil.strafeBot(
+					leftFrontDrive, leftBackDrive, rightFrontDrive, rightBackDrive, -0.6);
+		} else {
+			leftFrontDrive.setPower(0);
+			rightFrontDrive.setPower(0);
+			leftBackDrive.setPower(0);
+			rightBackDrive.setPower(0);
+		}
+	}
+
+	/**
+	 * Moves with the given axial, lateral for the given duration
+	 * @return if task is completed
+	 * */
+	private boolean move(double axial, double lateral, double duration) {
+		if (timer.time() < duration) {
+			MotorUtil.moveBot(leftFrontDrive, leftBackDrive, rightFrontDrive, rightBackDrive, axial, lateral, 0.0);
+			return false;
+		}
+		leftFrontDrive.setPower(0);
+		rightFrontDrive.setPower(0);
+		leftBackDrive.setPower(0);
+		rightBackDrive.setPower(0);
+		return true;
 	}
 
 	@Override
 	public void runOpMode() {
 		timer = new ElapsedTime();
-		aprilTagDetectionPipeline = new AprilTagDetectionPipeline(telemetry, Camera.FX, Camera.FY, Camera.CX, Camera.CY);
-		camera = new Camera(telemetry, hardwareMap, "webcam1", aprilTagDetectionPipeline);
+		detectionPipeline = new ObjectDetectionPipeline(telemetry);
+		camera = new Camera(telemetry, hardwareMap, "webcam1", detectionPipeline);
 
 		leftFrontDrive  = hardwareMap.get(DcMotor.class, "frontLeft");
 		leftBackDrive  = hardwareMap.get(DcMotor.class, "backLeft");
@@ -94,38 +106,37 @@ public class FinalAutonomousFar extends LinearOpMode {
 		waitForStart();
 		telemetry.setMsTransmissionInterval(50);
 
-		int numFramesWithoutDetection = 0;
-		final float DECIMATION_HIGH = 3;
-		final float DECIMATION_LOW = 2;
-		final float THRESHOLD_HIGH_DECIMATION_RANGE_METERS = 1.0f;
-		final int THRESHOLD_NUM_FRAMES_NO_DETECTION_BEFORE_LOW_DECIMATION = 4;
-
-		final double FEET_PER_METER = 3.28084;
 		timer.reset();
 
+		ObjectDetectionPipeline.Location location = ObjectDetectionPipeline.Location.NULL;
+
 		while (opModeIsActive()) {
-			// move left
-			double lateral = -0.6;
-			double axial = 0.0, yaw = 0.0;
-
-			double leftFrontPower = axial + lateral + yaw;
-			double rightFrontPower = axial - lateral - yaw;
-			double leftBackPower = axial - lateral + yaw;
-			double rightBackPower = axial + lateral - yaw;
-
-			if (timer.time() < 3.4) {
-				leftFrontDrive.setPower(leftFrontPower);
-				rightFrontDrive.setPower(rightFrontPower);
-				leftBackDrive.setPower(leftBackPower);
-				rightBackDrive.setPower(rightBackPower);
+			// do detection stuff
+			// if the location is still not found
+			if (location == ObjectDetectionPipeline.Location.NULL) {
+//			if (true) {
+				location = detectionPipeline.getLocation();
+				timer.reset();
 			} else {
-				leftFrontDrive.setPower(0);
-				rightFrontDrive.setPower(0);
-				leftBackDrive.setPower(0);
-				rightBackDrive.setPower(0);
+				boolean finished = false;
+				if (location == ObjectDetectionPipeline.Location.LEFT) {
+					finished = move(0.0, -0.8, 0.39);
+				} else if (location == ObjectDetectionPipeline.Location.CENTER) {
+					finished = move(0.8, 0.0, 0.19);
+				} else if (location == ObjectDetectionPipeline.Location.RIGHT) {
+					finished = move(0.0, 0.8, 0.46);
+				}
 			}
+			telemetry.addLine("d1: " + detectionPipeline.d1 + " d2: " + detectionPipeline.d2 + " d3: " + detectionPipeline.d3);
+			telemetry.addLine("" + detectionPipeline.a1.toString());
+			telemetry.addLine("" + detectionPipeline.a2.toString());
+			telemetry.addLine("" + detectionPipeline.a3.toString());
+			telemetry.addLine("actual d " + detectionPipeline.actualD);
+
+			telemetry.addLine(location.name());
+			sleep(20);
+//			moveLeft();
 			telemetry.update();
-//			sleep(20);
 		}
 	}
 }

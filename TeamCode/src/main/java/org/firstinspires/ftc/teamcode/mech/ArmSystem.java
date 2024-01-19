@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.subsystem.SubSystem;
+import org.firstinspires.ftc.teamcode.util.MotorUtil;
 
 public class ArmSystem extends SubSystem {
 
@@ -75,20 +76,10 @@ public class ArmSystem extends SubSystem {
 	private static final double CLAW_TOGGLE_COOLDOWN = 0.5;  // 0.5 sec
 	private ElapsedTime elbowTimer;
 
-	public static void moveServoToTarget(Servo s, double targetPosition, double inc) {
-		if (s.getPosition() == targetPosition) {
-			return;
-		}
-		double moveAmount = targetPosition - s.getPosition();
-		double dir = Math.signum(moveAmount);
-		moveAmount = Math.min(Math.abs(moveAmount), inc);
-		s.setPosition(s.getPosition() + moveAmount * dir);
-	}
-
 	private void setData(ArmPositionSetting a, WristPositionSetting w) {
 		extensionMotor.setTargetPosition((int) a.extension);
-		moveServoToTarget(armServo, a.arm, 0.004);
-		moveServoToTarget(elbowServo, a.elbow, 0.004);
+		MotorUtil.moveServoToTarget(armServo, a.arm, 0.004);
+		MotorUtil.moveServoToTarget(elbowServo, a.elbow, 0.004);
 		wristServo.setPosition(w.wrist);
 	}
 
@@ -127,6 +118,11 @@ public class ArmSystem extends SubSystem {
 		else if (gamepad1.dpad_down) {
 			currentArmPosition = ArmPositionSetting.CLOSED_EXTENSION;
 		}
+		if (gamepad1.dpad_up) {
+			currentArmPosition.arm = 0.1339;
+		}
+		currentArmPosition.elbow += gamepad1.right_stick_y * 0.005;
+		armServo.setPosition(currentArmPosition.elbow);
 
 		// claw code
 		// original position
